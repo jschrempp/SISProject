@@ -562,7 +562,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
                   }
                   document.getElementById("variableButtons").innerHTML = variableButtonsHTML;
               }
-
+              document.getElementById("featureButtons").innerHTML = formatFeatureButtons();
           });
       }
       disableDeviceButtons(false);
@@ -740,6 +740,10 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     // The config is stored in _sparkCoreData.config
     // The results are then shown in the div id="currentCoreConfig"
     //
+    getCoreConfiguration = function(callbackFunction) {
+        _sparkCoreData.SISConfigIsRefeshed = false;
+        getSparkCoreVariable("Config", storeCoreConfiguration);
+    },
     getCoreConfigurationAndSensorConfig = function() {
         _sparkCoreData.SISConfigIsRefeshed = false;
         getSparkCoreVariable("Config", storeCoreConfigurationAndGetSensorConfig);
@@ -877,19 +881,20 @@ SHRIMPWARE.SISClient = (function() { // private module variables
       _sparkCoreData.SensorLog = [];
       iterateSensorLog(-1);
     },
-    iterateSensorLog = function(buffPosition) {
+    iterateSensorLog = function(buffPosition, formatted) {
         // This is called recusively!!!
         // Retrieve the sensor log at buffPosition, then when done call this
         // again with buffPosition-1. Stop when buffPosition is < 0 OR
         // when a retrieved log at buffPosition is null.
         // Start by calling this with the length of the sensor log.
-      if (!_sparkCoreData.SISConfigIsRefeshed) {
-          console.log('_sparkCoreData is not current in iterateSensorLog');
-          return;
+
+      var maxBufferPosition = 200;
+      if (_sparkCoreData.SISConfigIsRefeshed) {
+          maxBufferPosition = _sparkCoreData.cBufLen;
       }
 
       buffPosition = buffPosition + 1;
-      if (buffPosition >= _sparkCoreData.cBufLen) {
+      if (buffPosition >= maxBufferPosition) {
         logAdd("buffPosition is now greater than bufferLength");
         _sparkCoreData.SensorLogIsRefreshed = true;
         commandOutputAdd("--end of sensor buffer--");
@@ -902,12 +907,18 @@ SHRIMPWARE.SISClient = (function() { // private module variables
           } else {
             getSparkCoreVariable("circularBuff", function(data) {
 
-              if (data) {
-                var message = massageSensorLog(data);
+              if (data != "?") {
+                  var message = '';
+                  if (formatted) {
+                      message = massageSensorLog(data);
+                  } else {
+                      message = data;
+                  }
+
                 commandOutputAdd(message);
                 //commandOutputAdd(data);
                 _sparkCoreData.SensorLog[_sparkCoreData.SensorLog.length] = data;
-                iterateSensorLog(buffPosition);
+                iterateSensorLog(buffPosition, formatted);
 
               } else {
 
@@ -968,6 +979,20 @@ SHRIMPWARE.SISClient = (function() { // private module variables
 
     },
 
+    // ----- Get raw log -------
+    // These functions are used by the get log button on the debug web page
+    // to cycle through the SIS on board circular buffer and dump it out
+    // with minimal formatting
+    displayRawSISLog = function() {
+        // iterate through the sensor log on the Spark core and display results
+        //styleAButton("btnGetSensorLog", 2);
+        commandOutputClear();
+        _sparkCoreData.SensorLogIsRefreshed = false;
+        _sparkCoreData.SensorLog = [];
+        iterateSensorLog(-1, false);
+    },
+
+    // ------ end of Get raw log
 
 
     // ------- Sensor Configuration ------------------
@@ -1398,6 +1423,16 @@ SHRIMPWARE.SISClient = (function() { // private module variables
       return output;
     },
 
+    formatFeatureButtons = function() {
+      /*
+      This function returns HTML with buttons to call the debug features - operations
+      more complex than just calling the SIS through the particle.io cloud
+      */
+      var output = '<button onclick="SHRIMPWARE.SISClient.displayRawSISLog()" >Display Raw Log</button>';
+      output += '<p>';
+      return output;
+    },
+
     makeDeviceSelectForm = function(devlist) {
         var outputElement = document.getElementById("deviceListOutput");
         //display all the devices on the web page
@@ -1504,6 +1539,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     loginToSpark: loginToSpark,
     initWebPage: initWebPage,
     listAllDevices: listAllDevices,
+    getCoreConfiguration:getCoreConfiguration,
     getSensorLog: getSensorLog,
     getSensorConfig: getSensorConfig,
     clearSensorConfig: clearSensorConfig,
@@ -1520,6 +1556,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     hideModalClearSISConfig:hideModalClearSISConfig,
     showModalClearSISConfig:showModalClearSISConfig,
     sensorTableAddClick:sensorTableAddClick,
-    sensorTableResetClick:sensorTableResetClick
+    sensorTableResetClick:sensorTableResetClick,
+    displayRawSISLog:displayRawSISLog
   };
 }());
