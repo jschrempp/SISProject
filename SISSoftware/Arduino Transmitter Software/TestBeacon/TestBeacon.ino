@@ -1,17 +1,38 @@
+#define RUN_ON_BOOT
 
 /******************************************************************************************************/
-// TestBeaconFixedLoop:  Used to send one of two alternating sensor codes a predetermined number of times.
+// TestBeaconFixedLoop:  Used to send codes to test a code receiver.
+//
+// If RUN_ON_BOOT is defined, then the beacon will send
+// one of two alternating sensor codes in a burst of 20 repeats, then rest
+// DELAY_SECONDS and send another burst. It will repeat this NUM_LOOPS times. This
+// mode is useful to have the beacon run each time it is reset.
+//
+// Without RUN_ON_BOOT then the beacon will boot and remain idle. This is useful
+// if the test beacon is some distance from the user and you have access to a web
+// browser to run the SISDebug page. In this mode the
+// beacon can be controlled through the following cloud API calls:
+//
+//  sendContinuous
+//      parameter:  0 - stop    1 - begin
+//      The beacon will begin sending code bursts as described above until sendContinuous is
+//      again called with a 0.
+//
 // Useful for testing the SIS Hub receive code.
 // The wireless code is a 24 bit code word + sync that is compatible with the PT2262 and EV1527 protocols.
 //
 //  A 315 MHz or 433 MHz wireless transmitter is connected to Arduino digital pin 4.
 //
 //  This software uses blocking code.  This is OK since it only sends one code at a time.
+//  The DELAY_SECONDS is needed for an accurate test because the reciver hardware
+//  usually has some kind of AGC on it and will require a few seconds to adjust to the
+//  normal no-signal environment.
+//
 //  This software has been bebugged and tested using RC-SWITCH.
 //
 //  (c) 2015 by Bob Glicksman and Jim Schrempp
 /******************************************************************************************************/
-// Version 001.  Has two defined constants for the codes: CODE_ONE and CODE_TWO. DELAY_SECONDS is the
+// Version 002.  Has two defined constants for the codes: CODE_ONE and CODE_TWO. DELAY_SECONDS is the
 //  minimum time between code sends; it could be longer depending upon how long it takes for a
 //  code to actually be sent.  NUM_LOOPS is the number of times to send a code before exiting
 //  setup() and going into the do-nothing loop().
@@ -33,7 +54,8 @@ const int LED_PIN = 7;
 const int BAUD_TIME = 500;             // basic signalling unit is 400 us
 
 /**************************************** GLOBAL VARIABLES ********************************************/
-unsigned long codeWord = CODE_ONE;
+bool g_sendContinuous = false;
+
 /******************************************** setup() *************************************************/
 void setup()
 {
@@ -44,30 +66,11 @@ void setup()
     Serial.begin(9600);
   #endif
 
-  for (int i = 0; i < NUM_LOOPS; i++)
-  {
-    delay(DELAY_SECONDS * 1000);
+#ifdef RUN_ON_BOOT
+  sendAlternatingCodes(NUM_LOOPS);
+#endif
 
-    if (codeWord == CODE_ONE)
-    {
-      codeWord = CODE_TWO;
-    }
-    else
-    {
-      codeWord = CODE_ONE;
-    }
-
-    // send the code word 20 times -
-    digitalWrite(LED_PIN, HIGH);
-    for (int i = 0; i < 20; i++)
-    {
-      sendCodeWord(codeWord);
-    }
-    digitalWrite(LED_PIN, LOW);
-
-    Spark.process();
-
-  }
+  Spark.function("sendContinuous",setSendContinuous);
 
 }
 /***************************************** end of setup() *********************************************/
@@ -81,9 +84,53 @@ void loop()
     delay(150);
     digitalWrite(LED_PIN, LOW);
     delay(150);
+    Spark.process();
 
 }
 /***************************************** end of loop() **********************************************/
+
+// CLOUD FUNCTION
+int setSendContinuous(String data){
+    sendAlternatingCodes(NUM_LOOPS);
+}
+
+
+void sendAlternatingCodes(int numLoops){
+
+    unsigned long codeWord;
+
+    for (int i = 0; i < numLoops; i++)
+    {
+      delay(DELAY_SECONDS * 1000);
+
+      if (codeWord == CODE_ONE)
+      {
+        codeWord = CODE_TWO;
+      }
+      else
+      {
+        codeWord = CODE_ONE;
+      }
+
+      sendCode20Times(codeWord);
+    }
+}
+
+void sendCode20Times(int code){
+
+      // send the code word 20 times -
+      digitalWrite(LED_PIN, HIGH);
+      for (int i = 0; i < 20; i++)
+      {
+        sendCodeWord(code);
+      }
+      digitalWrite(LED_PIN, LOW);
+
+      Spark.process();
+
+
+}
+
 
 /**************************************** sendCodeWord() **********************************************/
 // sendCodeWord():  sends a 24 bit code to the transmitter data pin.  The code is encoded according
