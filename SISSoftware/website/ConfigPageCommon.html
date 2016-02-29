@@ -1,4 +1,4 @@
-<div id="pageContainer">
+<div class="w3-container">
     <script type="text/javascript">
         var _gaq = _gaq || [];
         _gaq.push(['_setAccount', 'UA-1346932-2']);
@@ -17,16 +17,19 @@
     <noscript>
         This page requires that Javascript be enabled.
     </noscript>
-
-    <div id="SISPageTitle" >
-        <h2 id="configTitle">&nbsp;</h2>
-        <div id="jbs_jsversion">
+    <div class="w3-row w3-container">
+        <div class="w3-col s12 m12 l12 w3-container">
+            <div id="SISPageTitle">
+                <h2 id="configTitle">&nbsp;</h2>
+                <div id="jbs_jsversion">
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="ColumnDiv">
+    <div id="ColumnDiv" class="w3-row w3-container">
 
-        <div id="column1" class="columnSet">
+        <div id="column1" class="w3-col s6 m4 l2 w3-container">
 
             <div id="spark-login" />
 
@@ -34,7 +37,7 @@
                 SHRIMPWARE.SISClient.loginToSpark(); // Displays the login button
             </script>
 
-            <div id="devlistDiv" class="outerDivNoHeight" >
+            <div id="devlistDiv" class="outerDivNoHeight">
                 <h3>Device List
                     <button id="btnListAllDevices" onclick="SHRIMPWARE.SISClient.listAllDevices()">
                         Refresh Device List</button>
@@ -45,25 +48,26 @@
                 </div>
             </div>
 
-            <div id="configReportDiv" class="outerDivNoHeight" >
+            <div id="configReportDiv" class="outerDivNoHeight">
                 <h3>Config Report from Selected Device</h3>
                 <div id="currentCoreConfig" class="innerDiv">
                     No device selected yet.
                 </div>
             </div>
 
-            <div id="errorMsgDiv" class="outerDivNoHeight" >
+            <div id="errorMsgDiv" class="outerDivNoHeight">
                 <h3>Error Messges...</h3>
                 <p>...if any, will display here, most recent on top
-                <div id="errorMessages" class="innerDiv">
-                </div>
+                    <div id="errorMessages" class="innerDiv">
+                    </div>
             </div>
 
 
 
-        </div>  <!-- end of column 1 -->
+        </div>
+        <!-- end of column 1 -->
 
-        <div id="column2">
+        <div id="column2" class="w3-col s6 m8 l4 w3-container">
 
             <div id="commandsDiv" class="outerDivNoHeight">
                 <h3>Commands</h3>
@@ -81,7 +85,7 @@
                         Analyze Sensor Log</button>
                     <br>Show the current sensor config
                     <button id="btnGetSensorConfig" onclick="SHRIMPWARE.SISClient.getSensorConfig()">
-                            Refresh</button>
+                        Refresh</button>
                     <br>
                 </div>
             </div>
@@ -90,14 +94,15 @@
             <div id="sensorTableDiv" style="width:400px">
             </div>
 
-        </div> <!-- end of column 2 -->
+        </div>
+        <!-- end of column 2 -->
 
-        <div id="column3" class="columnSet">
+        <div id="column3" class="w3-col s6 m4 l3 w3-container">
 
-            <div >
+            <div>
                 <h3>Realtime Activity</h3>
-                <div  class="innerDiv">
-                    <p id="eventHeartbeat" data-state="OFF" >Cloud Connected</p>
+                <div class="innerDiv">
+                    <p id="eventHeartbeat" data-state="OFF">Cloud Connected</p>
                 </div>
 
             </div>
@@ -111,9 +116,10 @@
 
 
 
-        </div> <!-- end of column 3 -->
+        </div>
+        <!-- end of column 3 -->
 
-        <div id="column4"  class="columnSet">
+        <div id="column4" class="w3-col s6 m8 l3 w3-container">
 
             <button id="debugShowBtn" onClick="SHRIMPWARE.SISClient.debugShow()">Show Debug Log</button>
             <div id="debugLogDiv">
@@ -124,16 +130,17 @@
                 </div>
             </div>
 
-        </div> <!-- end of column 4 -->
+        </div>
+        <!-- end of column 4 -->
 
     </div>
 
-    <div id="bottomDiv">
+    <div id="bottomDiv" class="w3-row w3-container">
         <p>If you want all the code used on these pages, <a href="https://github.com/SISProject"> visit our
             github project.</a></p>
         <p>Use of this client is subject to our <a href="https://github.com/SISProject/SISDocs/blob/master/Terms_of_Use_License_and_Disclaimer.pdf">
             Terms of Use, License, and Disclaimer.</a>
-        <p>(c) 2015 Bob Glicksman and Jim Schrempp. All Rights Reserved</p>
+            <p>(c) 2015 Bob Glicksman and Jim Schrempp. All Rights Reserved</p>
     </div>
 
     <script>
@@ -143,31 +150,29 @@
 </div>
 
 <!-- the following div is used to make sure the user wants to clear their SIS sensor config -->
-<div id="modalClearSISConfigDiv" class="modalOuterDiv" >
-    <div id="modalClearSISConfigInnerDiv" class = "modalInnerDiv">
+<div id="modalClearSISConfigDiv" class="modalOuterDiv">
+    <div id="modalClearSISConfigInnerDiv" class="modalInnerDiv">
         <h3>Are you sure?</h3>
-        You are about to clear your SIS sensor configuration. This will reset all of
-        the configured sensors back to nil. After this your SIS will not recognize any
-        sensor trips. You will need to configure each sensor again. This is not necessarily
-        bad, but you should be sure.
+        You are about to clear your SIS sensor configuration. This will reset all of the configured sensors back to nil. After this your SIS will not recognize any sensor trips. You will need to configure each sensor again. This is not necessarily bad, but you
+        should be sure.
         <p>
-        <input type="button" value="Clear SIS Configuration" onclick="SHRIMPWARE.SISClient.clearSensorConfig()">
-        &nbsp;&nbsp;&nbsp;
-        <input type="button" value="Cancel" onclick="SHRIMPWARE.SISClient.hideModalClearSISConfig()">
+            <input type="button" value="Clear SIS Configuration" onclick="SHRIMPWARE.SISClient.clearSensorConfig()"> &nbsp;&nbsp;&nbsp;
+            <input type="button" value="Cancel" onclick="SHRIMPWARE.SISClient.hideModalClearSISConfig()">
     </div>
 </div>
 <!-- the following div is used when the user wants to add a new sensor to their SIS config -->
-<div id="modalnewSensorSetupDiv" class="modalOuterDiv" >
-    <div id="modalnewSensorSetupInnerDiv"  class = "modalInnerDiv">
+<div id="modalnewSensorSetupDiv" class="modalOuterDiv">
+    <div id="modalnewSensorSetupInnerDiv" class="modalInnerDiv">
         <h4>Setup New Sensor</h4>
         <p id="sensorSetUpName">&nbsp;</p>
-        <div  class="innerDiv">
+        <div class="innerDiv">
             Trip the new sensor:
             <button id="btnSetNewSensorWasTripped" onclick="SHRIMPWARE.SISClient.setNewSensorWasTripped()" disabled='true'>
                 New Sensor Was Tripped</button>
-            <p><p>
-            <button id="btnCancelSensorConfig" onclick="SHRIMPWARE.SISClient.cancelSensorConfig()">
-                Cancel</button>
+            <p>
+                <p>
+                    <button id="btnCancelSensorConfig" onclick="SHRIMPWARE.SISClient.cancelSensorConfig()">
+                        Cancel</button>
         </div>
     </div>
 </div>
