@@ -76,10 +76,10 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     _activeDevice,  // object from spark.device() that we want to talk to
     _sparkCoreData = // used to hold the data that comes back from the SIS firmware
         {
-            SensorLog: [],
-            SensorLogIsRefreshed: false,
+            SensorLog: [], // an array of the sensor log after it is read from the SISHub
+            SensorLogIsRefreshed: false, // set FALSE when we begin fetching the event log; TRUE when SensorLog is complete
             SensorConfig: [],
-            SensorConfigIsRefreshed: false,
+            SensorConfigIsRefreshed: false, // set FALSE when we begin fetching the event log; TRUE when SensorConfig is complete
             LastSensorTrip: '',
             SISConfigIsRefeshed: false
             // search code for validateCoreConfig to see what other properties
@@ -903,10 +903,12 @@ SHRIMPWARE.SISClient = (function() { // private module variables
             getSparkCoreVariable("circularBuff", function(data) {
 
               if (data) {
-                var message = massageSensorLog(data);
+                var logEntry = massageSensorLog(data);
+                var message = '#' + logEntry.sequence + ' ' + logEntry.sensorName +
+                     '<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + logEntry.epochDateString;
                 commandOutputAdd(message);
                 //commandOutputAdd(data);
-                _sparkCoreData.SensorLog[_sparkCoreData.SensorLog.length] = data;
+                _sparkCoreData.SensorLog[_sparkCoreData.SensorLog.length] = logEntry;
                 iterateSensorLog(buffPosition);
 
               } else {
@@ -935,7 +937,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
             return 'error';
         }
 
-        var message = "";
+        var thisLogEntry = {};
         // find the epoc date
         var locationEpoch = sensorLogData.indexOf("epoch:");
         if (locationEpoch > 0) {
@@ -956,15 +958,24 @@ SHRIMPWARE.SISClient = (function() { // private module variables
             // should send a better formatted log message.
             var locationAt = sensorLogData.indexOf(" at ");
             sensorLogData = sensorLogData.substring(0,locationAt);
+            var sensorTripSeq = sensorLogData.slice(3,sensorLogData.indexOf(")"));
+            var sensorName = sensorLogData.slice(sensorLogData.indexOf(")")+1, sensorLogData.length);
 
             //message = "At " + epochDateString + ": " + sensorLogData ;
-            message = sensorLogData + '<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + epochDateString;
+            thisLogEntry.epochDateString = epochDateString;
+            thisLogEntry.epochTimeNumber = epochTimeNumber;
+            thisLogEntry.sequence = sensorTripSeq;
+            thisLogEntry.sensorName = sensorName;
         }
         else
         {
-            message = "could not find epoch date";
+            // message = "could not find epoch date";
+            thisLogEntry.sequence = 1;
+            thisLogEntry.sensorName = "error parsing sensorlog";
+            thisLogEntry.epochTimeNumber = 0;
+            thisLogEntry.epochTimeString = "1/1/1900";
         }
-        return message;
+        return thisLogEntry;
 
     },
 
