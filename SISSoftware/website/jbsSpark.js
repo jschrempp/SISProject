@@ -96,6 +96,8 @@ SHRIMPWARE.SISClient = (function() { // private module variables
 
     _animationTimer1Sec, // when screen needs to be animated, this pops once a second
 
+    _chart, // used by analyzeSensorLog to present the data
+
     _defaultBtnStyle,
 
     // One function of the UI is to add a sensor code and description to the
@@ -596,7 +598,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
                 // xxx here we should try to restart the monitoring again.
             }
             var data = eventMonitor.responseText;
-            console.log(data);
+            //console.log(data);
             if (data.length > 5) {  // a short length indicates a heartbeat from the cloud
                 // go handle the notification from the SIS
                 processPublishNotificationGroup(data);
@@ -918,6 +920,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
                 commandOutputAdd("--Sensor log done--");
                 styleAButton("btnGetSensorLog", 1);
                 styleTheAlert(1);
+                _sparkCoreData.SensorLogIsRefreshed = true;
 
               }
 
@@ -932,7 +935,6 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     // sample SIS event log record:
     //     (S:5)Family Room 1 PIR tripped at Mon Nov 9 23:39:42 2015 Z (epoch:1447112382Z)
         if (!_sparkCoreData.SISConfigIsRefeshed) {
-            message = '';
             console.log('_sparkCoreData was null in massageSensorLog');
             return 'error';
         }
@@ -959,7 +961,11 @@ SHRIMPWARE.SISClient = (function() { // private module variables
             var locationAt = sensorLogData.indexOf(" at ");
             sensorLogData = sensorLogData.substring(0,locationAt);
             var sensorTripSeq = sensorLogData.slice(3,sensorLogData.indexOf(")"));
-            var sensorName = sensorLogData.slice(sensorLogData.indexOf(")")+1, sensorLogData.length);
+            var textEndOfName = sensorLogData.indexOf("tripped") -1;
+            if (textEndOfName == -1) {
+                textEndOfName = sensorLogData.length;
+            }
+            var sensorName = sensorLogData.slice(sensorLogData.indexOf(")")+1, textEndOfName);
 
             //message = "At " + epochDateString + ": " + sensorLogData ;
             thisLogEntry.epochDateString = epochDateString;
@@ -1052,7 +1058,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
         // e.g.  "loc: 2, sensor code: 34528 is for MasterBRPIR"
         //output is an object with elements for each important part of the sensor config
 
-        var SISConfigItem = {position:"" ,sensorCode:""};
+        var SISConfigItem = {position:"" ,sensorCode:"",sensorName:""};
         var inputSplit = dataFromSIS.split(' ');
 
         var temp = inputSplit[1].trim();
@@ -1060,6 +1066,9 @@ SHRIMPWARE.SISClient = (function() { // private module variables
         SISConfigItem.position = temp.substring(0,commaPos);
 
         SISConfigItem.sensorCode = inputSplit[4].trim();
+
+        var isforPos = dataFromSIS.indexOf('is for');
+        SISConfigItem.sensorName = dataFromSIS.substring(isforPos+7,dataFromSIS.length);
 
         return SISConfigItem;
 
@@ -1504,12 +1513,71 @@ SHRIMPWARE.SISClient = (function() { // private module variables
 
     //---------------  Sensor Table End ----------------------
 
-    analyzeSensorLog = function() {
-      commandOutputClear();
-      commandOutputAdd("This comes from the routine where I would add analysis.");
-      var msg = "Sensor log has " + _sparkCoreData.SensorLog.length + " entries in it.";
-      commandOutputAdd(msg);
+    analyzeSensorLog = function(startDate,durationDays) {
+        // XXX for debug
+        _sparkCoreData.SensorLogIsRefreshed = true;
+
+        if (! _sparkCoreData.SensorLogIsRefreshed) {
+            alert("You must finish Show Log first");
+        } else {
+
+            document.getElementById('timelineOuterDiv').style.visibility = 'visible';
+
+            var container = document.getElementById('timelineOutput');
+
+            if (!_chart){
+                 _chart = new google.visualization.Timeline(container);
+            } else {
+                _chart.clearChart();
+            }
+            var dataTable = new google.visualization.DataTable();
+
+            dataTable.addColumn({ type: 'string', id: 'Sensor Name' });
+            dataTable.addColumn({ type: 'date', id: 'Time' });
+            dataTable.addColumn({ type: 'date', id: 'End' });
+
+            var todayNow = new Date(startDate);
+            var graphStartTime = new Date(todayNow.getFullYear(), todayNow.getMonth(), todayNow.getDate(), 0, 0, 0);
+            var graphEndTime = new Date(todayNow.getFullYear(),todayNow.getMonth(),todayNow.getDate()+1);
+
+            //Preload all the sensors that have codes configured so that the graph
+            //order is deterministic
+            for (var configEntry in _sparkCoreData.SensorConfig) {
+                if(_sparkCoreData.SensorConfig.hasOwnProperty(configEntry)) {
+                    var theEvent = _sparkCoreData.SensorConfig[configEntry];
+                    if (theEvent.sensorCode != "0"){
+                        dataTable.addRow([theEvent.sensorName, graphStartTime, graphStartTime]);
+                        dataTable.addRow([theEvent.sensorName, graphEndTime, graphEndTime]);
+                    }
+                }
+
+            }
+
+            for (var logEvent in _sparkCoreData.SensorLog) {
+                if (_sparkCoreData.SensorLog.hasOwnProperty(logEvent)){
+                    var theEvent = _sparkCoreData.SensorLog[logEvent];
+                    // Only plot events within the current graph window
+                    if (theEvent.epochTimeNumber >= graphStartTime.getTime()/1000
+                        &
+                        theEvent.epochTimeNumber <= graphEndTime.getTime()/1000
+                        ) {
+                        var utcSeconds = theEvent.epochTimeNumber;
+                        var d = new Date(0); // The 0 there is the key, which sets the date to the epoch
+                        d.setUTCSeconds(utcSeconds);
+                        dataTable.addRow([theEvent.sensorName, d, d]);
+                    }
+                }
+            }
+            _chart.draw(dataTable);
+
+        }
+
   };
+
+
+
+
+
   return {
       // public methods and properties
     loginToSpark: loginToSpark,

@@ -29,7 +29,7 @@
 
     <div id="ColumnDiv" class="w3-row w3-container">
 
-        <div id="column1" class="w3-col s6 m4 l2 w3-container">
+        <div id="column1" style="max-width:250px" class="w3-col s12 m12 l3 w3-container">
 
             <div id="spark-login" />
 
@@ -38,14 +38,13 @@
             </script>
 
             <div id="devlistDiv" class="outerDivNoHeight">
-                <h3>Device List
-                    <button id="btnListAllDevices" onclick="SHRIMPWARE.SISClient.listAllDevices()">
-                        Refresh Device List</button>
-                </h3>
+                <h3>Device List</h3>
                 <div id="deviceListOutput">
                     <p class="colorRed">Log into Spark to see devices and enable
                         <br>sensor configuration functions!</p>
                 </div>
+                <button id="btnListAllDevices" onclick="SHRIMPWARE.SISClient.listAllDevices()">
+                    Refresh Device List</button>
             </div>
 
             <div id="configReportDiv" class="outerDivNoHeight">
@@ -67,7 +66,7 @@
         </div>
         <!-- end of column 1 -->
 
-        <div id="column2" class="w3-col s6 m8 l4 w3-container">
+        <div  style="max-width:450px" id="column2" class="w3-col s12 m10 l6 w3-container" >
 
             <div id="commandsDiv" class="outerDivNoHeight">
                 <h3>Commands</h3>
@@ -80,9 +79,9 @@
                     <button id="btnClearSISConfig" onclick="SHRIMPWARE.SISClient.showModalClearSISConfig()">
                         Clear</button>
 
-                    <br>Not implemented yet
-                    <button id="btnAnalyzeSensorLog" onclick="SHRIMPWARE.SISClient.analyzeSensorLog()">
-                        Analyze Sensor Log</button>
+                    <br>Graph Sensor Log
+                    <button id="btnAnalyzeSensorLog" onclick="SHRIMPWARE.SISClient.analyzeSensorLog(Date(),1)">
+                        Show Graph</button>
                     <br>Show the current sensor config
                     <button id="btnGetSensorConfig" onclick="SHRIMPWARE.SISClient.getSensorConfig()">
                         Refresh</button>
@@ -97,7 +96,7 @@
         </div>
         <!-- end of column 2 -->
 
-        <div id="column3" class="w3-col s6 m4 l3 w3-container">
+        <div id="column3" class="w3-col s12 m4 l3 w3-container">
 
             <div>
                 <h3>Realtime Activity</h3>
@@ -119,7 +118,7 @@
         </div>
         <!-- end of column 3 -->
 
-        <div id="column4" class="w3-col s6 m8 l3 w3-container">
+        <div id="column4" class="w3-col s12 m8 l3 w3-container w3-padding-10">
 
             <button id="debugShowBtn" onClick="SHRIMPWARE.SISClient.debugShow()">Show Debug Log</button>
             <div id="debugLogDiv">
@@ -160,6 +159,7 @@
             <input type="button" value="Cancel" onclick="SHRIMPWARE.SISClient.hideModalClearSISConfig()">
     </div>
 </div>
+
 <!-- the following div is used when the user wants to add a new sensor to their SIS config -->
 <div id="modalnewSensorSetupDiv" class="modalOuterDiv">
     <div id="modalnewSensorSetupInnerDiv" class="modalInnerDiv">
@@ -176,5 +176,16 @@
         </div>
     </div>
 </div>
-
+<!-- the following div is used to show the graph when the user clicks Analyze -->
+<div id="timelineOuterDiv"   >
+    <div id="timelineInnerDiv" >
+        <div id="timelineTitleDiv">
+            <h4>Sensor Timeline</h4>
+            <button id="btnCancelSensorConfig" onclick="document.getElementById('timelineOuterDiv').style.visibility='hidden'">
+                Done</button>
+        </div>
+        <div id="timelineOutput">
+        </div>
+    </div>
+</div>
 </div>
