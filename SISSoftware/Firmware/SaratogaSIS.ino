@@ -382,7 +382,7 @@ void loop()
 	{
     	sensorCode = "Received sensor code: ";
     	sensorCode += receivedSensorCode;
-    	sensorCode += " for unknown sensor";
+    	sensorCode += " for unknown sensor";  // note that JScript client depends upon the string "unknown"
     	Serial.println(sensorCode);  // USB print for debugging
     	sensorCode.toCharArray(cloudMsg, sensorCode.length() );  // publish to cloud
 
