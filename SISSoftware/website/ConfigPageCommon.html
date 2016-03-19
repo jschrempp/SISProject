@@ -74,24 +74,17 @@
                     Show the log of sensor events
                     <button id="btnGetSensorLog" onclick="SHRIMPWARE.SISClient.getSensorLog()">
                         Show</button>
-
-                    <br>Clear Current SIS Config
-                    <button id="btnClearSISConfig" onclick="SHRIMPWARE.SISClient.showModalClearSISConfig()">
-                        Clear</button>
-
                     <br>Graph Sensor Log
                     <button id="btnAnalyzeSensorLog" onclick="SHRIMPWARE.SISClient.analyzeSensorLog(Date(),1)">
                         Show Graph</button>
-                    <br>Show the current sensor config
-                    <button id="btnGetSensorConfig" onclick="SHRIMPWARE.SISClient.getSensorConfig()">
-                        Refresh</button>
+                    <br>Show / modify the SIS sensor config
+                    <button id="btnGetSensorConfig" onclick="SHRIMPWARE.SISClient.showSensorDisplay()">
+                        Go</button>
                     <br>
                 </div>
             </div>
 
 
-            <div id="sensorTableDiv" style="width:400px">
-            </div>
 
         </div>
         <!-- end of column 2 -->
@@ -111,10 +104,6 @@
                 <div id="commandOutput">
                 </div>
             </div>
-
-
-
-
         </div>
         <!-- end of column 3 -->
 
@@ -169,13 +158,13 @@
             Trip the new sensor:
             <button id="btnSetNewSensorWasTripped" onclick="SHRIMPWARE.SISClient.setNewSensorWasTripped()" disabled='true'>
                 New Sensor Was Tripped</button>
-            <p>
-                <p>
-                    <button id="btnCancelSensorConfig" onclick="SHRIMPWARE.SISClient.cancelSensorConfig()">
-                        Cancel</button>
+            <p><p>
+            <button id="btnCancelSensorConfig" onclick="SHRIMPWARE.SISClient.cancelSensorConfig()">
+                Cancel</button>
         </div>
     </div>
 </div>
+
 <!-- the following div is used to show the graph when the user clicks Analyze -->
 <div id="timelineOuterDiv"   >
     <div id="timelineInnerDiv" >
@@ -188,4 +177,24 @@
         </div>
     </div>
 </div>
+<!-- the following div is used to show and configure sensors -->
+<div id="sensorDisplayOuterDiv"   >
+    <div id="sensorDisplayInnerDiv" >
+        <div id="sensorDisplayTitleDiv">
+            <h4>Sensor Configuration</h4>
+            <br>Show the current sensor config
+            <button id="btnGetSensorConfig" onclick="SHRIMPWARE.SISClient.getSensorConfig()">
+                Refresh</button>
+            <br>Clear Current SIS Config
+            <button id="btnClearSISConfig" onclick="SHRIMPWARE.SISClient.showModalClearSISConfig()">
+                Clear</button>
+            <br> Close this window
+            <button id="btnCancelSensorDisplay" onclick="document.getElementById('sensorDisplayOuterDiv').style.visibility='hidden'">
+                Done</button>
+        </div>
+        <div id="sensorTableDiv" style="width:400px">
+        </div>
+    </div>
+</div>
+
 </div>

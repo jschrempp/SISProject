@@ -744,7 +744,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     //
     getCoreConfigurationAndSensorConfig = function() {
         _sparkCoreData.SISConfigIsRefeshed = false;
-        getSparkCoreVariable("Config", storeCoreConfigurationAndGetSensorConfig);
+        getSparkCoreVariable("Config", storeCoreConfiguration);
     },
     storeCoreConfigurationAndGetSensorConfig = function (data){
         if (data.length < 20) { // I've seen a timeout return "errornull" but don't know if we can count on that
@@ -997,6 +997,10 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     // variable "registration" to get the actual data. It will do this as many
     // times as needed to get all the configured sensor information.
     //
+    showSensorDisplay = function() {
+        document.getElementById('sensorDisplayOuterDiv').style.visibility = "visible";
+    },
+
     getSensorConfig = function() {
         // iterate through the sensor log on the SIS and display results
       sensorConfigOutputClear();
@@ -1599,6 +1603,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     hideModalClearSISConfig:hideModalClearSISConfig,
     showModalClearSISConfig:showModalClearSISConfig,
     sensorTableAddClick:sensorTableAddClick,
-    sensorTableResetClick:sensorTableResetClick
+    sensorTableResetClick:sensorTableResetClick,
+    showSensorDisplay:showSensorDisplay
   };
 }());
