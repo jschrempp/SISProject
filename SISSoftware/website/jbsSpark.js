@@ -886,7 +886,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
         // when a retrieved log at buffPosition is null.
         // Start by calling this with the length of the sensor log.
       if (!_sparkCoreData.SISConfigIsRefeshed) {
-          console.log('_sparkCoreData is not current in iterateSensorLog');
+          errorMessageAdd('_sparkCoreData is not current in iterateSensorLog');
           return;
       }
 
@@ -912,6 +912,8 @@ SHRIMPWARE.SISClient = (function() { // private module variables
                 //commandOutputAdd(data);
                 _sparkCoreData.SensorLog[_sparkCoreData.SensorLog.length] = logEntry;
                 iterateSensorLog(buffPosition);
+
+                //if (logEntry.epochTimeNumber < )
 
               } else {
 
@@ -1134,17 +1136,16 @@ SHRIMPWARE.SISClient = (function() { // private module variables
                 //if (_sparkCoreData.LastSensorTrip == data) {
                 if (false) {
                     // data is same as last time
-                    msgElement.innerHTML =
-                        "<br>New sensor trip was not detected. Try again.";
+                    alert("New sensor trip was not detected. Try again.");
 
                 } else {
                     // is it an unregistered sensor?
 
                     if (data.indexOf("unknown") == -1) {
-                        msgElement.innerHTML =
-                            "<br>Detected sensor is already configured." +
-                            " If this is the correct sensor, then remove it from the config first. Sensor id: " +
-                            'xxx';
+                        //TODO: parse the sensor id from the data and add to the error message.
+                        alert("Detected sensor is not reported as 'unknown'." +
+                            " If this is the correct sensor, then remove it from the config first. Sensor report: " +
+                            data);
 
                     } else {
                         // parse out the new sensor id
@@ -1159,11 +1160,10 @@ SHRIMPWARE.SISClient = (function() { // private module variables
                         callSparkCoreFunction("Register", commandParam, function(data) {
                             if (data != 4) {
                                 // some error
-                                msgElement.innerHTML =
-                                    "<br>Error from SIS Register: " + data;
+                                alert("Error from SIS Register: " + data);
                             } else {
                                 saveSensorConfig();
-                                msgElement.innerHTML = '<br>Sensor was successfully registered!';
+                                alert("Sensor was successfully registered!");
                                 sisReadASensorConfig(_sensorPositionBeingConfigured);
                             }
                         });
