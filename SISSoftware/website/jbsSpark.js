@@ -869,7 +869,17 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     // These routines will talk to the SIS firmware and retrieve the current
     // entries in its circular buffer of sensor data. The log will then
     // be displayed on the web page using the commandOutput() function.
+    getSensorLogCompact = function() {
+        //retrives the non-human readable sensor Log
+        getSparkCoreVariable("sLogCompact", function(data) {
+            alert ("compact log: " + data);
+        });
+
+    },
+
     getSensorLog = function() {
+        //TODO: just for debug
+        getSensorLogCompact();
 
         // iterate through the sensor log on the Spark core and display results
       styleAButton("btnGetSensorLog", 2);
@@ -1518,14 +1528,20 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     //---------------  Sensor Table End ----------------------
 
     analyzeSensorLog = function(startDate,durationDays) {
-        // XXX for debug
-        _sparkCoreData.SensorLogIsRefreshed = true;
 
-        if (! _sparkCoreData.SensorLogIsRefreshed) {
-            alert("You must finish Show Log first");
-        } else {
+        document.getElementById('timelineOuterDiv').style.visibility = 'visible';
 
-            document.getElementById('timelineOuterDiv').style.visibility = 'visible';
+        //retrives the non-human readable sensor Log
+        getSparkCoreVariable("sLogCompact", function(data) {
+
+            if (!data) {
+                alert("SIS Hub compact data log is empty.");
+                return;
+            }
+
+            var compactRecords = data.split("|");
+            var configCompact = compactRecords[0].split(",")[0];
+            compactRecords.splice(0,1);
 
             var container = document.getElementById('timelineOutput');
 
@@ -1546,6 +1562,23 @@ SHRIMPWARE.SISClient = (function() { // private module variables
 
             //Preload all the sensors that have codes configured so that the graph
             //order is deterministic
+
+            for (var i=0; i<configCompact.length; i++){
+
+                if (configCompact.substring(i,i+1) == "1") {
+                    var sensorName = _mode.sensorList[i].display;
+                    dataTable.addRow([sensorName, graphStartTime, graphStartTime]);
+                    dataTable.addRow([sensorName, graphEndTime, graphEndTime]);
+                }
+
+            }
+            // preload the inferences from the SIS Hub firmware
+            for (var i = 101; i<105; i++) {
+                dataTable.addRow([compactCodeToSensorName(i), graphStartTime,graphStartTime]);
+                dataTable.addRow([compactCodeToSensorName(i), graphEndTime,graphEndTime]);
+            }
+
+            /*
             for (var configEntry in _sparkCoreData.SensorConfig) {
                 if(_sparkCoreData.SensorConfig.hasOwnProperty(configEntry)) {
                     var theEvent = _sparkCoreData.SensorConfig[configEntry];
@@ -1554,29 +1587,72 @@ SHRIMPWARE.SISClient = (function() { // private module variables
                         dataTable.addRow([theEvent.sensorName, graphEndTime, graphEndTime]);
                     }
                 }
-
             }
+            */
 
-            for (var logEvent in _sparkCoreData.SensorLog) {
-                if (_sparkCoreData.SensorLog.hasOwnProperty(logEvent)){
-                    var theEvent = _sparkCoreData.SensorLog[logEvent];
+
+            var expandedLog = [];
+            compactRecords.forEach(function(eValue, eIndex, eArray) {
+                var parts = eValue.split(",");
+                var tCompact = parts[0];
+                var theTime = new Date(parseInt(tCompact));
+                var theCode = parts[1];
+                var expandedRecord = {};
+                expandedRecord.epochTimeNumber = theTime.getTime();
+                expandedRecord.sensorName = compactCodeToSensorName(theCode);
+                expandedLog[expandedLog.length+1] = expandedRecord;
+            });
+
+            expandedLog.forEach( function(eValue, eIndex, eArray) {
                     // Only plot events within the current graph window
-                    if (theEvent.epochTimeNumber >= graphStartTime.getTime()/1000
+                    if (eValue.epochTimeNumber >= graphStartTime.getTime()/1000
                         &
-                        theEvent.epochTimeNumber <= graphEndTime.getTime()/1000
+                        eValue.epochTimeNumber <= graphEndTime.getTime()/1000
                         ) {
-                        var utcSeconds = theEvent.epochTimeNumber;
+                        var utcSeconds = eValue.epochTimeNumber;
                         var d = new Date(0); // The 0 there is the key, which sets the date to the epoch
                         d.setUTCSeconds(utcSeconds);
-                        dataTable.addRow([theEvent.sensorName, d, d]);
+                        dataTable.addRow([eValue.sensorName, d, d]);
                     }
-                }
-            }
+                });
             _chart.draw(dataTable);
 
-        }
+            });
 
-  };
+  },
+
+  compactCodeToSensorName =  function(compactLogCode) {
+      // Turns a compact log code into a string to display
+
+      //from the SIS hub firmware
+      var PERSON_IS_HOME = 101;         // NOTE: the SIS firmare defines these values
+      var PERSON_IS_NOT_HOME = 102;
+      var MULTIPLE_PEOPLE_IN_HOME = 103;
+      var NO_MOTION_DETECTED = 104;
+
+      var displayName = '';
+      if (compactLogCode <= 100) {
+          displayName = _mode.sensorList[compactLogCode].display;
+      } else {
+          switch (compactLogCode) {
+              case PERSON_IS_HOME:
+                  displayName = 'Person is home';
+                  break;
+              case PERSON_IS_NOT_HOME:
+                  displayName = 'No one is home';
+                  break;
+              case MULTIPLE_PEOPLE_IN_HOME:
+                  displayName = 'Multiple people in home';
+                  break;
+              case NO_MOTION_DETECTED:
+                  displayName = 'No motion detected';
+                  break;
+          }
+      }
+      return displayName;
+
+  }
+  ;
 
 
 

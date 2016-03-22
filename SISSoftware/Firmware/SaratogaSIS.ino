@@ -34,9 +34,16 @@
 // license, as well as the the SIS Terms of Use.
 //
 //  Version 1.01.  12/30/15.
-const String VERSION = "1.01";   	// current firmware version
+const String VERSION = "1.02";   	// current firmware version
 //
 //  (c) 2015 by Bob Glicksman and Jim Schrempp
+//
+// 1.02 Adds cloud variable sLogCompact. This holds the last 600 bytes of the
+//      circular buffer in a compact, machine readable form.
+//      Adds cloud variable sConCompact. This holds a string of 0's and 1's where
+//      each character maps to one of the sensor config locations.
+
+
 /***************************************************************************************************/
 
 /************************************* Global Constants ****************************************************/
@@ -78,6 +85,12 @@ const String messages[] = {             	// additional log messages for this app
 const byte UKN = 0;     	// unknown
 const byte HOME = 1;    	// person is home
 const byte NOT_HOME = 2;	// person is not home
+//Inference codes for compact log:
+const int PERSON_IS_HOME = 101;         // NOTE: the SIS client depends on these values
+const int PERSON_IS_NOT_HOME = 102;
+const int MULTIPLE_PEOPLE_IN_HOME = 103;
+const int NO_MOTION_DETECTED = 104;
+const int COMPACT_LOG_LENGTH = 600;  //Maximum length of compact log string
 
 /************************************* Global Variables ****************************************************/
 volatile boolean codeAvailable = false;  // set to true when a valid code is received and confirmed
@@ -95,7 +108,8 @@ volatile unsigned int *codeTimes;  // pointer to 315 MHz or 433 MHz codeTimes ar
 time_t resetTime;       	// variable to hold the time of last reset
 
    	//	Sensor registration data is held in parallel arrays.
-String sensorName[] =      	{ "unregistered S0",
+String sensorName[MAX_WIRELESS_SENSORS] =  {
+                                "unregistered S0",
                              	"unregistered S1",
                              	"unregistered S2",
                              	"unregistered S3",
@@ -117,7 +131,8 @@ String sensorName[] =      	{ "unregistered S0",
                              	"unregistered S19"
                            	};
 
-unsigned long activateCode[] = { 0,   	// UNREGISTERED SENSOR
+unsigned long activateCode[MAX_WIRELESS_SENSORS] = {
+                                0,   	// UNREGISTERED SENSOR
                              	0,	// UNREGISTERED SENSOR
                              	0,	// UNREGISTERED SENSOR
                              	0,	// UNREGISTERED SENSOR
@@ -157,6 +172,26 @@ String sensorCode = String("");
 String g_bufferReadout = String("");
 char cloudMsg[80];  	// buffer to hold last sensor tripped message
 char cloudBuf[90];  	// buffer to hold message read out from circular buffer
+String sConfigCompact = String(""); // holds a string of 0's and 1's. See sLogCompact.
+                        // set by calling updateConfigCompact()
+String sLogCompact = String("");
+                        // CLOUD VARIABLE
+                        // buffer to hold the compact version of the configuration
+                        // and the circular buffer of events.
+                        // Each record is separated by a | so the client can split on this.
+                        // First Record:
+                        // A string indicating which sensor config positions have
+                        // a sensor configured. One character for each sensor position
+                        // with either a 1 or 0. 1 indicates sensor is configured.
+                        // Variable updated in updateConfigCompact()
+                        // Subsequent Records:
+                        // Each event is stored as a record in the string as follows:
+                        //   Epoch time of event
+                        //   , separator
+                        //   int - Sensor config position or inference number
+                        //        Sensor config values 1-100; inferences 101-255;
+                        //
+
 char registrationInfo[80]; // buffer to hold information about registered sensors
 
 String cBuf[BUF_LEN];   // circular buffer to store events and messages as they happen
@@ -262,6 +297,7 @@ void setup()
   Spark.variable("sensorTrip", cloudMsg, STRING);
   Spark.function("ReadBuffer", readBuffer);
   Spark.variable("circularBuff", cloudBuf, STRING);
+  Spark.variable("sLogCompact", sLogCompact);
   Spark.variable("registration", registrationInfo, STRING);
   Spark.function("Register", registrar);
 
@@ -275,7 +311,6 @@ void setup()
   {
   	lastTripTime[i] = 0L;
   }
-
 
 #ifdef DEBUG
   Serial.println("End of setup()");
@@ -507,6 +542,23 @@ void logMessage(int messageIndex)
     	publishDebugRecord(debugLogMessage);
 	#endif
 
+    int compactMessage = -1;
+    switch (messageIndex) {
+        case 0:
+            compactMessage = PERSON_IS_NOT_HOME;
+            break;
+        case 1:
+            compactMessage = PERSON_IS_HOME;
+            break;
+        case 2:
+            compactMessage = NO_MOTION_DETECTED;
+            break;
+        case 3:
+            compactMessage = MULTIPLE_PEOPLE_IN_HOME;
+            break;
+    }
+    addToCompactLog(Time.now(), compactMessage);
+
 	return;
 }
 
@@ -516,7 +568,7 @@ void logMessage(int messageIndex)
 // logSensor(): function to create a log entry for a sensor trip
 //
 // Arguments:
-//  sensorIndex:  index into the sensorName[] and activeCode[] arrays of sensor data
+//  sensorIndex:  index into the sensorName[] and activateCode[] arrays of sensor data
 //
 void logSensor(int sensorIndex)
 {
@@ -557,10 +609,61 @@ void logSensor(int sensorIndex)
 
 	cBufInsert("" + logEntry);
 
+    addToCompactLog(Time.now(), sensorIndex);
+
 	return;
 }
 
 /*********************************** end of logSensor() ****************************************/
+
+/*********************************** addToCompactLog() ****************************************/
+void addToCompactLog(int timeStamp, int message) {
+    // format is | delimited
+    // first record is string sConfigCompact
+    // remaining records are one per circularBuff entry
+
+    // remove initial sConfigCompact
+    int locCompactConfigEnd = sLogCompact.indexOf("|");
+    String compactRecords = sLogCompact.substring(locCompactConfigEnd+1, sLogCompact.length());
+
+    // make new compact log record and add it to the compact records
+    String eventTime = String(timeStamp); //Time.format(timeStamp,"%Y%m%d%H%M%S,");
+    String newRecord = eventTime + "," +  String(message) + "|";
+    compactRecords += newRecord;
+
+    // will the final compactLog string be too long?
+    if (sLogCompact.length() + sConfigCompact.length() +1 > COMPACT_LOG_LENGTH) {
+
+        //delete first log records in compact buffer
+        int locFirstRecEnd = compactRecords.indexOf("|");
+        compactRecords = compactRecords.substring(locFirstRecEnd,compactRecords.length());
+
+    }
+
+    // assemble the new compact log
+    sLogCompact = sConfigCompact + "|" + compactRecords;
+
+}
+
+/*********************************** end of addToCompactLog() ****************************************/
+
+/*********************************** end of addToCompactLog() ****************************************/
+// updates sConfigCompact to represent those sensor positions that have a code configured
+void updateConfigCompact() {
+
+    String temp = "";
+    for (int i=0; i < MAX_WIRELESS_SENSORS; i++ ){
+        if (activateCode[i] == 0) {
+            temp += "0";
+        } else {
+            temp += "1";
+        }
+    }
+    sConfigCompact = temp;
+}
+
+
+/*********************************** end of addToCompactLog() ****************************************/
 
 /********************************** processPIRSensor() *****************************************/
 // processPIRSensor():  function to process a generic sensor trip.  This function creates a
@@ -791,6 +894,8 @@ void restoreConfig()
     	}
 
 	}
+
+    updateConfigCompact();
 
 	return;
 
@@ -1079,6 +1184,7 @@ int registrar(String action)
         	// perform the new sensor registration function
         	sensorName[location] = g_dest[3];
         	activateCode[location] = g_dest[2].toInt();
+            updateConfigCompact();
         	break;
 
     	case OFFSET:
