@@ -66,7 +66,7 @@ if (typeof SHRIMPWARE === "undefined") {
   var SHRIMPWARE = {};
 } // Start of module declaration
 SHRIMPWARE.SISClient = (function() { // private module variables
-  var _version = 26,
+  var _version = 26.2,
     //v 26 now expect SIS version 1.00
 
     _expectedSISCoreVersion = 1.00,  // this Javascript expects this SIS code in the core
@@ -95,6 +95,10 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     // should probably have one per eventName
 
     _animationTimer1Sec, // when screen needs to be animated, this pops once a second
+
+    _keepReadingLog, // when true, the loop retrieving the circular buffer continues.
+                     // when false, the loop will exit.
+                     // set false in iterateSensorLogStop()
 
     _defaultBtnStyle,
 
@@ -879,6 +883,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
       commandOutputAdd("Retrieving Sensor Log");
       _sparkCoreData.SensorLogIsRefreshed = false;
       _sparkCoreData.SensorLog = [];
+      _keepReadingLog = true;
       iterateSensorLog(-1);
     },
     iterateSensorLog = function(buffPosition, formatted) {
@@ -888,10 +893,17 @@ SHRIMPWARE.SISClient = (function() { // private module variables
         // when a retrieved log at buffPosition is null.
         // Start by calling this with the length of the sensor log.
 
+      if (!_keepReadingLog) {
+          logAdd("Log reading stopped.");
+          return;
+      }
+
       var maxBufferPosition = 200;
       if (_sparkCoreData.SISConfigIsRefeshed) {
           maxBufferPosition = _sparkCoreData.cBufLen;
       }
+
+
 
       buffPosition = buffPosition + 1;
       if (buffPosition >= maxBufferPosition) {
@@ -934,6 +946,9 @@ SHRIMPWARE.SISClient = (function() { // private module variables
           }
         });
       }
+    },
+    iterateSensorLogStop = function(){
+        _keepReadingLog = false;
     },
 
     massageSensorLog = function(sensorLogData) {
@@ -989,6 +1004,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
         commandOutputClear();
         _sparkCoreData.SensorLogIsRefreshed = false;
         _sparkCoreData.SensorLog = [];
+        _keepReadingLog = true;
         iterateSensorLog(-1, false);
     },
 
@@ -1429,6 +1445,8 @@ SHRIMPWARE.SISClient = (function() { // private module variables
       more complex than just calling the SIS through the particle.io cloud
       */
       var output = '<button onclick="SHRIMPWARE.SISClient.displayRawSISLog()" >Display Raw Log</button>';
+      output += '<br>';
+      output += '<button onclick="SHRIMPWARE.SISClient.iterateSensorLogStop()" >Stop Raw Log</button>';
       output += '<p>';
       return output;
     },
@@ -1557,6 +1575,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     showModalClearSISConfig:showModalClearSISConfig,
     sensorTableAddClick:sensorTableAddClick,
     sensorTableResetClick:sensorTableResetClick,
-    displayRawSISLog:displayRawSISLog
+    displayRawSISLog:displayRawSISLog,
+    iterateSensorLogStop:iterateSensorLogStop
   };
 }());

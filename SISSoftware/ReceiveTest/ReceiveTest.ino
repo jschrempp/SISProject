@@ -294,8 +294,9 @@ int parser(String source)
 int circularBuffReset(String data)
 {
     tail = 0;
-    head = tail;
+    head = 0;
     validCodeCount = 0;
+    upcount = 0;
     return 0;
 
 }
