@@ -294,9 +294,9 @@ int parser(String source)
 int circularBuffReset(String data)
 {
     tail = 0;
-    head = 0;
+    head = tail;
     validCodeCount = 0;
-    upcount = 0;
+    //upcount = 0;
     return 0;
 
 }
@@ -320,7 +320,7 @@ int readBuffer(String location)
     offset = location.toInt();
     result = readFromBuffer(offset, cloudBuf);
     if (result == -1) {
-        String qmark  = "?";
+        String qmark  = "!";
         qmark.toCharArray(cloudBuf, qmark.length() + 1 );
         cloudBuf[qmark.length() + 2] = '\0';
     }
