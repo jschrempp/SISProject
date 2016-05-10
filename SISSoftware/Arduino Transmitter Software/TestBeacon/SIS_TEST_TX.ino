@@ -46,7 +46,12 @@ void loop()
 
 int sendSeveralBursts(String parameters){
 
-    int num_loops = 1;
+    static int isRunning = 0;
+
+    if (isRunning == 1)
+    {
+        return -2;
+    }
 
     if (parameters.length() == 0)
     {
@@ -54,11 +59,13 @@ int sendSeveralBursts(String parameters){
         return 0;
     }
 
-    num_loops = parameters.toInt();
+    int num_loops = parameters.toInt();
     if (num_loops == 0)
     {
         return -1;
     }
+
+    isRunning = 1;
 
     while (num_loops > 0)
       {
@@ -73,6 +80,7 @@ int sendSeveralBursts(String parameters){
           num_loops--;
 
     } ;
+    isRunning = 0;
     return 0;
 }
 
