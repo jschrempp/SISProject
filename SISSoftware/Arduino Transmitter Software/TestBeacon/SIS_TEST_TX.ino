@@ -35,6 +35,7 @@ void setup()
   #endif
 
   Particle.function("xmit", sendBurst); // register the cloud function to send a burst of code words
+  Particle.function("sendMany",sendSeveralBursts);
 }
 
 void loop()
@@ -42,6 +43,38 @@ void loop()
     // nothing to do in loop().  Action is cloud call to sendBurst()
 }
 
+
+int sendSeveralBursts(String parameters){
+
+    int num_loops = 1;
+
+    if (parameters.length() == 0)
+    {
+        sendBurst("junk");
+        return 0;
+    }
+
+    num_loops = parameters.toInt();
+    if (num_loops == 0)
+    {
+        return -1;
+    }
+
+    while (num_loops > 0)
+      {
+
+          sendBurst("junk");
+
+          if (num_loops > 1)
+          {
+              delay(1000);
+          }
+
+          num_loops--;
+
+    } ;
+    return 0;
+}
 
 /************************************ sendBurst(String) *************************************************
 sendBurst(): transmit a burst of codewords.
@@ -52,24 +85,30 @@ int sendBurst(String foo)  // the argument is not used - can be any string
 {
   static unsigned long txCode = TX_CODE_INITIAL;
 
+
+  // signal that the code set is beginning
   digitalWrite(LED_PIN, HIGH);
-  // send BURST_SIZE number of code words
-  for (int i = 0; i < BURST_SIZE; i++)
-  {
-    sendCodeWord(txCode);
-  }
 
-  // wait for 10 seconds before sending again
+      // send BURST_SIZE number of code words
+      for (int i = 0; i < BURST_SIZE; i++)
+      {
+          sendCodeWord(txCode);
+      }
+
+
+      if (txCode >= (TX_CODE_INITIAL + NUM_CODES - 1))
+      {
+          txCode = TX_CODE_INITIAL;
+      }
+      else
+      {
+          txCode++;
+      }
+
+
+
+  // signal that the code set is done
   digitalWrite(LED_PIN, LOW);
-
-  if (txCode >= (TX_CODE_INITIAL + NUM_CODES - 1))
-  {
-      txCode = TX_CODE_INITIAL;
-  }
-  else
-  {
-      txCode++;
-  }
 
   return 0;
 }
