@@ -1031,6 +1031,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
             commandOutputAdd("Code Count Monitor is already running");
         } else {
             _monitorCodeCountLoopState.isRunning = true;
+            commandOutputClear();
             commandOutputAdd("time, good codes, bad codes, good per second");
             _monitorCodeCountsLoop = setInterval(monitorCodeCountLooper,10000);
         }
@@ -1039,6 +1040,15 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     monitorCodeCountLooper = function() {
         // call to get the current codeCount, then display
         getSparkCoreVariable("codeCount",monitorCodeCountDisplay);
+    },
+
+    monitorCodeCountsMarker = function() {
+        // put a marker in the output display
+
+        var nowTime = new Date();
+        var dateMsg = nowTime.toTimeString().split(" ")[0];
+        var message = dateMsg + ", 0, 0, 0, event";
+        commandOutputAdd(message);
     },
 
     monitorCodeCountDisplay = function(data) {
@@ -1070,6 +1080,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     monitorCodeCountsStop = function() {
         clearInterval(_monitorCodeCountsLoop);
         _monitorCodeCountLoopState.isRunning = false;
+        commandOutputAdd("Code Count Monitor Stopped");
     },
 
     // ------ end of Monitor Code Counts
@@ -1509,12 +1520,14 @@ SHRIMPWARE.SISClient = (function() { // private module variables
       more complex than just calling the SIS through the particle.io cloud
       */
       var output = '<button onclick="SHRIMPWARE.SISClient.displayRawSISLog()" >Display Raw Log</button>';
-      output += '<br>';
+      output += '&nbsp;&nbsp;';
       output += '<button onclick="SHRIMPWARE.SISClient.iterateSensorLogStop()" >Stop Raw Log</button>';
       output += '<p>';
       output += '<button onclick="SHRIMPWARE.SISClient.monitorCodeCounts()" >Monitor Code Counts</button>';
-      output += '<br>';
+      output += '&nbsp;&nbsp;';
       output += '<button onclick="SHRIMPWARE.SISClient.monitorCodeCountsStop()" >Stop Code Count Monitor</button>';
+      output += '&nbsp;&nbsp;';
+      output += '<button onclick="SHRIMPWARE.SISClient.monitorCodeCountsMarker()" >Place Marker</button>';
       return output;
     },
 
@@ -1645,6 +1658,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     displayRawSISLog:displayRawSISLog,
     iterateSensorLogStop:iterateSensorLogStop,
     monitorCodeCounts:monitorCodeCounts,
-    monitorCodeCountsStop:monitorCodeCountsStop
+    monitorCodeCountsStop:monitorCodeCountsStop,
+    monitorCodeCountsMarker:monitorCodeCountsMarker
   };
 }());
