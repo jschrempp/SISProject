@@ -18,12 +18,16 @@ SIS_TEST_TX:  program to make an SIS compatible test transmitter out of a Photon
 // #define DEBUG
 
 // Global constants:
+//These two are also needed in the ReceiveTest project
 const unsigned long TX_CODE_INITIAL = 321790ul;
+const int NUM_CODES = 10;              // we will rotate through 10 codes
+
 const int TX_PIN = D0;                  // transmitter on Digital pin D0
 const int LED_PIN = D7;
 const int BAUD_TIME = 400;              // basic signalling unit is 400 us
-const int NUM_CODES = 10;              // we will rotate through 10 codes
-const int BURST_SIZE = 50;              // when tripped, send out a burst of 50 code words
+const int BURST_SIZE = 30;              // when tripped, send out a burst of this many code words
+const int INTER_CODE_DELAY = 0;        // microseconds to delay between each code word
+const int DELAY_BETWEEN_BURSTS = 0; // milliseconds to delay between each burst, typcially 1000
 
 
 void setup()
@@ -74,7 +78,7 @@ int sendSeveralBursts(String parameters){
 
           if (num_loops > 1)
           {
-              delay(1000);
+              delay(DELAY_BETWEEN_BURSTS);
           }
 
           num_loops--;
@@ -101,6 +105,7 @@ int sendBurst(String foo)  // the argument is not used - can be any string
       for (int i = 0; i < BURST_SIZE; i++)
       {
           sendCodeWord(txCode);
+          delayMicroseconds(INTER_CODE_DELAY);
       }
 
 
@@ -129,7 +134,13 @@ sendCodeWord(): formats up a code word and transmits zero and one codes accordin
 void sendCodeWord(unsigned long code)
 {
   const unsigned long MASK = 0x00800000ul;  // mask off all but lsb
-  const int CODE_LENGTH = 24; // a code word is 24 bits + sync
+  const int CODE_LENGTH = 24; // a code word is sync + 24 bits
+
+  //send the sync
+  sendSync();
+  #ifdef DEBUG
+    Serial.println(" SYNC");
+  #endif
 
   // send the code word bits
   for (int i = 0; i < CODE_LENGTH; i++)
@@ -150,11 +161,6 @@ void sendCodeWord(unsigned long code)
     }
     code = code <<1;
   }
-  //send the sync
-  sendSync();
-  #ifdef DEBUG
-    Serial.println(" SYNC");
-  #endif
 
   return;
 }
@@ -169,11 +175,8 @@ void sendZero()
   // a zero is represented by one baud high and three baud low
   digitalWrite(TX_PIN, HIGH);
   delayMicroseconds(BAUD_TIME);
-  for(int i = 0; i < 3; i++)
-  {
-      digitalWrite(TX_PIN, LOW);
-      delayMicroseconds(BAUD_TIME);
-  }
+  digitalWrite(TX_PIN, LOW);
+  delayMicroseconds(BAUD_TIME * 3);
   return;
 }
 
@@ -186,11 +189,8 @@ sendOne(): transmits a "one" symbol that is compatible with EV1527 and PT2262 da
 void sendOne()
 {
   // a one is represented by three baud high and one baud low
-  for(int i = 0; i < 3; i++)
-  {
-      digitalWrite(TX_PIN, HIGH);
-      delayMicroseconds(BAUD_TIME);
-  }
+  digitalWrite(TX_PIN, HIGH);
+  delayMicroseconds(BAUD_TIME * 3);
   digitalWrite(TX_PIN, LOW);
   delayMicroseconds(BAUD_TIME);
   return;
@@ -206,10 +206,7 @@ void sendSync()
   // a sync is represented by one baud high and 31 baud low
   digitalWrite(TX_PIN, HIGH);
   delayMicroseconds(BAUD_TIME);
-  for(int i = 0; i < 31; i++)
-  {
-      digitalWrite(TX_PIN, LOW);
-      delayMicroseconds(BAUD_TIME);
-  }
+  digitalWrite(TX_PIN, LOW);
+  delayMicroseconds(BAUD_TIME * 31); // 31 pulses
   return;
 }

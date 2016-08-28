@@ -58,6 +58,8 @@ In the comments I try to use the phrase "spark core" when talking about the actu
 hardware or cloud. I use the phrase "SIS" when I mean something that has to do with the
 firmware we have written to run in the spark core.
 
+26.3 adds debug button to get codeCount every 15 seconds
+
 (c) 2015 Jim Schrempp
 */
 
@@ -66,10 +68,19 @@ if (typeof SHRIMPWARE === "undefined") {
   var SHRIMPWARE = {};
 } // Start of module declaration
 SHRIMPWARE.SISClient = (function() { // private module variables
-  var _version = 26.2,
+  var _version = 26.3,
     //v 26 now expect SIS version 1.00
 
     _expectedSISCoreVersion = 1.00,  // this Javascript expects this SIS code in the core
+
+    _monitorCodeCountsLoop,  // used as timer object for the debug monitor for code Counts
+
+    _monitorCodeCountLoopState = {  // used to hold state for the loop
+        isRunning: false,
+        lastCodeCountGood: 0,
+        lastCodeCountTotal: 0,
+        lastTime: 0
+    },
 
     _mainLoop,  // timer that pops every 0.5 seconds, all the time
     _startDate = new Date(), // time this javascript object was created
@@ -281,7 +292,7 @@ SHRIMPWARE.SISClient = (function() { // private module variables
             document.getElementById("btnGetSensorConfig").disabled = isDisabled;
 
             var tableButtons = document.getElementsByClassName("sensorTableActionButton");
-            for (var i=0 ; i<tableButtons.length; i++) {
+            for (i=0 ; i<tableButtons.length; i++) {
                 tableButtons[i].disabled = isDisabled;
             }
 
@@ -1010,6 +1021,59 @@ SHRIMPWARE.SISClient = (function() { // private module variables
 
     // ------ end of Get raw log
 
+    // ----- Monitor Code Counts -------
+    // These functions are used by the Monitor Code Counts button on the debug web page
+    // to read the codeCount variable from the SIS Receive Test client every 15 seconds.
+    // Used when testing with a code sending beacon to see how the number of received
+    // codes will vary over time.
+    monitorCodeCounts = function() {
+        if (_monitorCodeCountLoopState.isRunning) {
+            commandOutputAdd("Code Count Monitor is already running");
+        } else {
+            _monitorCodeCountLoopState.isRunning = true;
+            commandOutputAdd("time, good codes, bad codes, good per second");
+            _monitorCodeCountsLoop = setInterval(monitorCodeCountLooper,10000);
+        }
+    },
+
+    monitorCodeCountLooper = function() {
+        // call to get the current codeCount, then display
+        getSparkCoreVariable("codeCount",monitorCodeCountDisplay);
+    },
+
+    monitorCodeCountDisplay = function(data) {
+        var newTime = Date.now();
+        var dataSplit =  data.split(",");
+        var newCodeCountGood = dataSplit[0];
+        var newCodeCountTotal = dataSplit[1];
+
+        if (_monitorCodeCountLoopState.lastTime === 0) {
+            // do nothing
+        } else {
+            var deltaCodeCountGood = newCodeCountGood - _monitorCodeCountLoopState.lastCodeCountGood;
+            var deltaTimeSeconds = (newTime - _monitorCodeCountLoopState.lastTime)/1000;
+            var deltaCodeCountTotal = newCodeCountTotal - _monitorCodeCountLoopState.lastCodeCountTotal;
+            var codeCountErrors = deltaCodeCountTotal - deltaCodeCountGood;
+            var codeCountGoodPerSecond = deltaCodeCountGood / deltaTimeSeconds;
+            var nowTime = new Date();
+            var dateMsg = nowTime.toTimeString().split(" ")[0];
+            var message = dateMsg + ", " + deltaCodeCountGood + ", " + codeCountErrors + ", " + codeCountGoodPerSecond.toFixed(1);
+            commandOutputAdd(message);
+        }
+
+        _monitorCodeCountLoopState.lastCodeCountTotal = newCodeCountTotal;
+        _monitorCodeCountLoopState.lastCodeCountGood = newCodeCountGood;
+        _monitorCodeCountLoopState.lastTime = newTime;
+
+    },
+
+    monitorCodeCountsStop = function() {
+        clearInterval(_monitorCodeCountsLoop);
+        _monitorCodeCountLoopState.isRunning = false;
+    },
+
+    // ------ end of Monitor Code Counts
+
 
     // ------- Sensor Configuration ------------------
     // These fuctions will contact the SIS firmware and get a list of what
@@ -1448,6 +1512,9 @@ SHRIMPWARE.SISClient = (function() { // private module variables
       output += '<br>';
       output += '<button onclick="SHRIMPWARE.SISClient.iterateSensorLogStop()" >Stop Raw Log</button>';
       output += '<p>';
+      output += '<button onclick="SHRIMPWARE.SISClient.monitorCodeCounts()" >Monitor Code Counts</button>';
+      output += '<br>';
+      output += '<button onclick="SHRIMPWARE.SISClient.monitorCodeCountsStop()" >Stop Code Count Monitor</button>';
       return output;
     },
 
@@ -1576,6 +1643,8 @@ SHRIMPWARE.SISClient = (function() { // private module variables
     sensorTableAddClick:sensorTableAddClick,
     sensorTableResetClick:sensorTableResetClick,
     displayRawSISLog:displayRawSISLog,
-    iterateSensorLogStop:iterateSensorLogStop
+    iterateSensorLogStop:iterateSensorLogStop,
+    monitorCodeCounts:monitorCodeCounts,
+    monitorCodeCountsStop:monitorCodeCountsStop
   };
 }());
